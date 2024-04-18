@@ -42,7 +42,7 @@ locus_gene_in_open_target_sumstats <- locus_gene_in_open_target %>%
 #Locus NOT TO prioritise: locus with gene with precedence for clinical trial in asthma:
 locus_with_asthma_clinicaltrial <- locus_gene_in_open_target %>%
                                    filter(chembl != "No data") %>%
-                                   select(Locus, symbol, globalScore, chembl, maxClinicalTrialPhase)
+                                   select(Locus, symbol, globalScore, chembl, maxClinicalTrialPhase, europepmc)
 locus_with_asthma_clinicaltrial$prioritise <- as.factor("NO")
 
 #Locus TO BE PRIORITISED: locus with NO gene with precedence for clinical trial in asthma:
@@ -52,7 +52,7 @@ locus_NOasthma_clinicaltrial <- locus_gene_in_open_target %>%
 locus_NOasthma_clinicaltrial <- locus_NOasthma_clinicaltrial %>%
                                      mutate(prioritise = if_else(maxClinicalTrialPhase != "No data",
                                      as.factor("POTENTIAL_IN_CLINICS"), as.factor("POTENTIAL_NO_CLINICS"))) %>%
-                                     select(Locus, prioritise, symbol, globalScore, chembl, maxClinicalTrialPhase)
+                                     select(Locus, prioritise, symbol, globalScore, chembl, maxClinicalTrialPhase, europepmc)
 
 #combine for overall table with summary results on prioritisation:
 locus_prioritisation <- rbind(locus_with_asthma_clinicaltrial, locus_NOasthma_clinicaltrial) %>%
