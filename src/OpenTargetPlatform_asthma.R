@@ -19,6 +19,26 @@ locus_gene_in_open_target <- locus_gene %>%
 write_tsv(locus_gene_in_open_target,"output/Locus_prioritisation_full.tsv")
 
 #digest result:
+#Summary statistics:
+##How many genes in OpenTarget for each locus:
+##grep by locus, find the count of gene with globalscore NA and not NA.
+locus_gene_in_open_target <- locus_gene_in_open_target %>%
+                             group_by(Locus) %>%
+                             mutate(Ngene_TOT = n()) %>%
+                             ungroup()
+
+locus_Ngene_NOT_OTP  <- locus_gene_in_open_target %>%
+    dplyr::group_by(Locus) %>%
+    dplyr::summarise_at(vars(globalScore), ~ sum(is.na(.))) %>% rename(Ngene_NOT_OPT = globalScore)
+
+locus_gene_in_open_target <- locus_gene_in_open_target %>% left_join(locus_Ngene_NOT_OTP, by = "Locus")
+locus_gene_in_open_target$Ngene_IN_OPT <- locus_gene_in_open_target$Ngene_TOT - locus_gene_in_open_target$Ngene_NOT_OPT
+locus_gene_in_open_target$Ngene_IN_OPT_perc <- locus_gene_in_open_target$Ngene_IN_OPT / locus_gene_in_open_target$Ngene_TOT
+
+locus_gene_in_open_target_sumstats <- locus_gene_in_open_target %>%
+                                      select(Locus,Ngene_TOT, Ngene_IN_OPT, Ngene_IN_OPT_perc) %>%
+                                      unique()
+
 #Locus NOT TO prioritise: locus with gene with precedence for clinical trial in asthma:
 locus_with_asthma_clinicaltrial <- locus_gene_in_open_target %>%
                                    filter(chembl != "No data") %>%
@@ -38,5 +58,12 @@ locus_NOasthma_clinicaltrial <- locus_NOasthma_clinicaltrial %>%
 locus_prioritisation <- rbind(locus_with_asthma_clinicaltrial, locus_NOasthma_clinicaltrial) %>%
                         relocate(prioritise, .after = Locus) %>%
                         arrange(Locus, prioritise, symbol)
+
+##add the stats about gene presence for each locus:
+locus_prioritisation <- locus_prioritisation %>%
+                        full_join(locus_gene_in_open_target_sumstats, by = "Locus") %>%
+                        mutate(prioritise = if_else(Ngene_IN_OPT_perc == 0, "NA_NO_GENE_IN_OPT", prioritise)) %>%
+                        arrange(Locus, prioritise, symbol)
+
 #save prioritisation result:
 write_tsv(locus_prioritisation,"output/Locus_prioritisation_decision.tsv")
